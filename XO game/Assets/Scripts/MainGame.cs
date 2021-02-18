@@ -97,6 +97,8 @@ public class MainGame : MonoBehaviour
             DestroyGameObject();
             DrawSelect = true;
         }
+        if (choicePlayer == Figure.Zero)
+            canStep = false;
     }
 
     private void GameVsCPU()
@@ -107,14 +109,14 @@ public class MainGame : MonoBehaviour
                                 -4.3f + 1f * 3f / SizeMap, 0), SizeMap, SizeMap);
             FillingWinCombination();
         }
-        if (!canStep)
-            CPUStep();
         //if game map is end, next stage
         if (!GameContinue())
             GameMode = GameModes.EndGame;
         // check if there is a winner
         if (TestWin(choicePlayer)) { WhoWin = choicePlayer; GameMode = GameModes.EndGame; }
         else if (TestWin(CPU)) { WhoWin = CPU; GameMode = GameModes.EndGame; }
+        if (!canStep && GameMode != GameModes.EndGame)
+            CPUStep();
     }
 
     public void Highlighting()
