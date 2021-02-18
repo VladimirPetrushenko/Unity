@@ -16,6 +16,7 @@ public class ImgChange : MonoBehaviour
             case MainGame.Figure.Cross: sprite.sprite = sprites[1]; break;
             case MainGame.Figure.Zero: sprite.sprite = sprites[2]; break;
             case MainGame.Figure.Frame: sprite.sprite = sprites[3]; break;
+            case MainGame.Figure.Cube: sprite.sprite = sprites[4]; break;
         }
     }
 
@@ -37,6 +38,15 @@ public class ImgChange : MonoBehaviour
             {
                 ImageStatus = main.choicePlayer;
                 main.canStep = false;
+                if(main.MultuPlayer)
+                    main.ChangeBackground(false);
+            }
+            if (!main.canStep && ImageStatus == 0)
+            {
+                ImageStatus = main.CPU;
+                main.canStep = true;
+                if (main.MultuPlayer)
+                    main.ChangeBackground(true);
             }
         }
     }

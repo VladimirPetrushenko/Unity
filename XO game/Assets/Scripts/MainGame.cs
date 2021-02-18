@@ -5,13 +5,14 @@ using UnityEngine.SceneManagement;
 
 public class MainGame : MonoBehaviour
 {
+    public bool MultuPlayer = false;
     private int QuantityToWin { get; set; } = 3;
     private int SizeMap { get; set; } = 3;
     //all winner combination with this size map
     private int[,] winCombination;
     public enum GameModes { StartGame = 0, ChoicePlayer = 1, GameVSCPU = 2, EndGame = 3}
     Figure WhoWin = Figure.Blank;
-    public enum Figure { Blank = 0, Cross = 1, Zero = 2, Frame = 3}
+    public enum Figure { Blank = 0, Cross = 1, Zero = 2, Frame = 3, Cube = 4}
     //save player choice
     public Figure choicePlayer = Figure.Blank, CPU = Figure.Blank;
     // player can step or not
@@ -36,10 +37,18 @@ public class MainGame : MonoBehaviour
 
         bool gameChange;
 
-        rect = DrawButtons(rect, "Press to start", out gameChange);
+        rect = DrawButtons(rect, "Single player", out gameChange);
         //if button1 was pressed change gameMode
         if (gameChange)
             GameMode = GameModes.ChoicePlayer;
+
+        rect = DrawButtons(rect, "Multi Player", out gameChange);
+        //if button1 was pressed change gameMode
+        if (gameChange)
+        {
+            GameMode = GameModes.ChoicePlayer;
+            MultuPlayer = true;
+        }
 
         rect = DrawButtons(rect, "Exit", out gameChange);
         //if button2 was pressed change gameMode
@@ -108,6 +117,10 @@ public class MainGame : MonoBehaviour
             DrawBlanksToDisplay(new Vector3(-4.2f + 1f * 3f / SizeMap,
                                 -4.3f + 1f * 3f / SizeMap, 0), SizeMap, SizeMap);
             FillingWinCombination();
+            if(choicePlayer==Figure.Cross)
+                ChangeBackground(true);
+            if (choicePlayer == Figure.Zero)
+                ChangeBackground(false);
         }
         //if game map is end, next stage
         if (!GameContinue())
@@ -116,7 +129,10 @@ public class MainGame : MonoBehaviour
         if (TestWin(choicePlayer)) { WhoWin = choicePlayer; GameMode = GameModes.EndGame; }
         else if (TestWin(CPU)) { WhoWin = CPU; GameMode = GameModes.EndGame; }
         if (!canStep && GameMode != GameModes.EndGame)
-            CPUStep();
+        {
+            if(MultuPlayer==false)
+                CPUStep();
+        }
     }
 
     public void Highlighting()
@@ -327,5 +343,13 @@ public class MainGame : MonoBehaviour
         DrawButtons(rc, "Start Game", out flag);
         if (flag && choicePlayer != 0) 
             GameMode = GameModes.GameVSCPU;
+    }
+    public void ChangeBackground(bool Player)
+    {
+        Camera camera = gameObject.GetComponent<Camera>();
+        if (Player)
+            camera.backgroundColor = new Color32(115,20,1,255); 
+        else
+            camera.backgroundColor = new Color32(4, 61, 17, 255);
     }
 }
