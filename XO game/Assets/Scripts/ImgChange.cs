@@ -22,13 +22,13 @@ public class ImgChange : MonoBehaviour
     {
         GameObject game = GameObject.FindGameObjectWithTag("Player");
         MainGame main = game.GetComponent<MainGame>();
-        if (main.GameMode == 1)
+        if (main.GameMode == MainGame.GameModes.ChoicePlayer)
         {
             main.choicePlayer = ImageStatus;
             if (ImageStatus == 1) main.CPU = 2;//0
             if (ImageStatus == 2) main.CPU = 1;//X
         }
-        if(main.GameMode == 2)
+        if(main.GameMode == MainGame.GameModes.GameVSCPU)
         {
             //the player's turn and the field is empty
             if (main.canStep && ImageStatus == 0) 

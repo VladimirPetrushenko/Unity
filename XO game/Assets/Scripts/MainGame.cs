@@ -5,6 +5,9 @@ using UnityEngine.SceneManagement;
 
 public class MainGame : MonoBehaviour
 {
+    private int SizeMap { get; set; } = 5;
+    private int[,] winCombination;
+    public enum GameModes { StartGame = 0, ChoicePlayer = 1, GameVSCPU = 2, EndGame = 3}
     int WhoWin = 0;
     //save player choice
     public int choicePlayer = 0, CPU = 0;
@@ -17,7 +20,7 @@ public class MainGame : MonoBehaviour
     //Game map
     public GameObject[] selectMap;
     //Game mode to switch modes
-    public int GameMode { get; private set; } = 0;
+    public GameModes GameMode { get; private set; } = GameModes.StartGame;
     //Drawed Start Menu
     private void mainMenu()
     {
@@ -31,7 +34,7 @@ public class MainGame : MonoBehaviour
         rect = DrawButtons(rect, "Начать игру", out gameChange);
         //if button1 was pressed change gameMode
         if (gameChange)
-            GameMode = 1;
+            GameMode = GameModes.ChoicePlayer;
 
         rect = DrawButtons(rect, "Выход", out gameChange);
         //if button2 was pressed change gameMode
@@ -61,39 +64,42 @@ public class MainGame : MonoBehaviour
 
     private void OnGUI()
     {
-        if (GameMode == 0)
+        if (GameMode == GameModes.StartGame)
         {
             mainMenu();
             //reset player selection from previous game
             choicePlayer = 0;
             CPU = 0;
         }
-        if (GameMode == 1)
+        if (GameMode == GameModes.ChoicePlayer)
         {
             
             if (DrawSelect)
                 DrawChoiseToDisplay();
             if (choicePlayer != 0)
             {
-                GameMode = 2;
+                GameMode = GameModes.GameVSCPU;
                 DestroyGameObject();
             }
         }
-        if (GameMode == 2)
+        if (GameMode == GameModes.GameVSCPU)
         {
             // Draw new game
             if (DrawSelect)
-                DrawBlanksToDisplay(new Vector3(-3.2f, -3.3f, 0), 9);
+            {
+                DrawBlanksToDisplay(new Vector3(-4.2f + 1f * 3f / SizeMap, -4.3f + 1f * 3f / SizeMap, 0), SizeMap * SizeMap);
+                FillingWinCombination();
+            }
             if (!canStep)
                 CPUStep();
             //if game map is end, next stage
             if (!GameContinue()) 
-                GameMode = 3;
+                GameMode = GameModes.EndGame;
             // check if there is a winner
-            if (TestWin(choicePlayer)) { WhoWin = choicePlayer; GameMode = 3; }
-            if (TestWin(CPU)) { WhoWin = CPU; GameMode = 3; }
+            if (TestWin(choicePlayer)) { WhoWin = choicePlayer; GameMode = GameModes.EndGame; }
+            if (TestWin(CPU)) { WhoWin = CPU; GameMode = GameModes.EndGame; }
         }
-        if (GameMode == 3)
+        if (GameMode == GameModes.EndGame)
         {
             FinishGame();
         }
@@ -139,7 +145,7 @@ public class MainGame : MonoBehaviour
     private void CPUStep()
     {
         //random computer step
-        int index = Random.Range(0, 9);
+        int index = Random.Range(0, SizeMap * SizeMap);
         ImgChange change = selectMap[index].GetComponent<ImgChange>();
         if (change.ImageStatus == 0)
         {
@@ -160,12 +166,13 @@ public class MainGame : MonoBehaviour
     //Draw new map in the game
     private void DrawBlanksToDisplay(Vector3 vector, int count)
     {
+        Vector3 scale = new Vector3(1f * 3f / SizeMap, 1f * 3f / SizeMap, 1);
         selectMap = new GameObject[count];
-        for(int i = 0; i < Mathf.Sqrt(count); i++)
+        for(int j = 0; j < Mathf.Sqrt(count); j++)
         {
-            for(int j = 0; j < Mathf.Sqrt(count); j++)
+            for(int i = 0; i < Mathf.Sqrt(count); i++)
             {
-                DrawOneImg(vector, new Vector3(3.2f * i, 3.3f * j, 0), 3 * i + j);
+                DrawOneImg(vector, new Vector3(3.2f * i * scale.x, 3.2f * j * scale.y, 0), i + SizeMap * j);
             }
         }
         DrawSelect = false;
@@ -189,6 +196,7 @@ public class MainGame : MonoBehaviour
     {
         vector = vector + changeVector;
         selectMap[i] = Instantiate(Img, vector, Quaternion.identity);
+        selectMap[i].transform.localScale = new Vector3(1 * 3f / SizeMap, 1 * 3f / SizeMap, 1);
         ImgChange change = selectMap[i].GetComponent<ImgChange>();
         change.ImageStatus = status;
     }
@@ -204,38 +212,7 @@ public class MainGame : MonoBehaviour
     //check who winner
     private bool TestWin(int Who)
     {
-        int[,] winCombination = new int[,]{   { 1,1,1, // X X X
-                                                0,0,0,
-                                                0,0,0},
-
-                                              { 0,0,0,
-                                                1,1,1,   // X X X
-                                                0,0,0 },
-
-                                              { 0,0,0,
-                                                0,0,0,
-                                                1,1,1 }, // X X X
-
-                                              { 1,0,0,  // X
-                                                0,1,0,  //   X
-                                                0,0,1 },//     X
-
-                                              { 0,0,1,  //     X
-                                                0,1,0,  //   X
-                                                1,0,0 },// X
-
-                                              { 1,0,0,  // X
-                                                1,0,0,  // X
-                                                1,0,0 },// X
-
-                                              { 0,0,1,  //      X
-                                                0,0,1,  //      X
-                                                0,0,1 },//      X
-
-                                               {0,1,0,  //   X
-                                                0,1,0,  //   X
-                                                0,1,0 } }; //X     
-        int[] testMap = new int[9];
+        int[] testMap = new int[SizeMap*SizeMap];
         if (selectMap != null)
         {
             //transfer all Who points to an array
@@ -245,23 +222,43 @@ public class MainGame : MonoBehaviour
                 ImgChange change = s.GetComponent<ImgChange>();
                 if (change.ImageStatus == Who)
                 {
-                    testMap[i] = 1;
+                    testMap[selectMap.Length-i-1] = 1;
                 }
             }
             //check if matches with the winning combination
-            for (int variableWin = 0; variableWin < 8; variableWin++)
+            for (int variableWin = 0; variableWin < winCombination.GetUpperBound(0) + 1; variableWin++)
             {
                 int win = 0;
-                for (int i = 0; i < 9; i++)
+                for (int i = 0; i < testMap.Length; i++)
                 {
                     if (winCombination[variableWin, i] == 1)
                         if (testMap[i] == 1)
                             win++;
                 }
-                if (win == 3)
+                if (win == SizeMap)
                     return true;
             }
         }
         return false;
+    }
+    private void FillingWinCombination()
+    {
+        winCombination = new int[SizeMap * 2 + 2, SizeMap * SizeMap];
+        int rows = winCombination.GetUpperBound(0) + 1;
+        //Заполнение построчно
+        for (int i = 0; i < SizeMap; i++)
+            for (int j = 0; j < SizeMap; j++)
+                winCombination[i, j + i * SizeMap] = 1;
+        //Заполнение сталбцов
+        for (int i = SizeMap; i < SizeMap * 2; i++)
+            for (int j = 0; j < SizeMap; j++)
+                winCombination[i, j * SizeMap + i - SizeMap] = 1;
+        for (int j = 0; j < SizeMap; j++)
+        {
+            //главная диагональ
+            winCombination[SizeMap * 2, j + j * SizeMap] = 1;
+            //побочная диагональ
+            winCombination[SizeMap * 2 + 1, SizeMap * SizeMap - SizeMap - j * (SizeMap - 1)] = 1;
+        }
     }
 }
