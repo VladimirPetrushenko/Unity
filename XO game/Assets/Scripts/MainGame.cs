@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 
 public class MainGame : MonoBehaviour
 {
+    private int QuantityToWin { get; set; } = 3;
     private int SizeMap { get; set; } = 3;
     //all winner combination with this size map
     private int[,] winCombination;
@@ -28,19 +29,19 @@ public class MainGame : MonoBehaviour
     {
         //reset player selection from previous game
         choicePlayer = 0; CPU = 0;
-        Rect rect = DrawLabelToDisplay("Меню игры", 100, 40, new GUIStyle());
+        Rect rect = DrawLabelToDisplay("Menu game", 100, 40, new GUIStyle());
         //m = (int)GUILayout.HorizontalSlider(m, 3, 10);
         //shitft the center to the width of the button frame
         rect.x = rect.x - 15;
 
         bool gameChange;
 
-        rect = DrawButtons(rect, "Начать игру", out gameChange);
+        rect = DrawButtons(rect, "Press to start", out gameChange);
         //if button1 was pressed change gameMode
         if (gameChange)
             GameMode = GameModes.ChoicePlayer;
 
-        rect = DrawButtons(rect, "Выход", out gameChange);
+        rect = DrawButtons(rect, "Exit", out gameChange);
         //if button2 was pressed change gameMode
         if (gameChange)
             Application.Quit();
@@ -266,15 +267,21 @@ public class MainGame : MonoBehaviour
             //check if matches with the winning combination
             for (int variableWin = 0; variableWin < winCombination.GetUpperBound(0) + 1; variableWin++)
             {
-                int win = 0;
+                byte[] rows = new byte[SizeMap];
+                byte indexRow = 0;
                 for (int i = 0; i < testMap.Length; i++)
                 {
                     if (winCombination[variableWin, i] == 1)
+                    {
                         if (testMap[i] == 1)
-                            win++;
+                            rows[indexRow]++;
+                        else
+                            indexRow++;
+                    }
                 }
-                if (win == SizeMap)
-                    return true;
+                foreach (var r in rows)
+                    if (r >= QuantityToWin)
+                        return true;
             }
         }
         return false;
@@ -301,18 +308,19 @@ public class MainGame : MonoBehaviour
     }
     private void ChoiceOfMapSize()
     {
-        var rc = new Rect(Screen.width / 2 - 40, Screen.height / 2, 100, 20);
+        var rc = new Rect(Screen.width / 3 + 10, Screen.height / 2, 100, 20);
         GUI.Label(rc, "Size map");
-        rc.y += 20;
-        rc.x -= 25;
+        rc = new Rect(rc.x - 25, rc.y + 20, 100, 20);
         SizeMap = (int)GUI.HorizontalSlider(rc, SizeMap, 3, 10);
-        rc.width = 40;
-        rc.x += 105;
-        rc.y -= 5;
+        rc = new Rect(rc.x + 105, rc.y - 5, 40, 20);
         GUI.TextField(rc, SizeMap.ToString() + "x" + SizeMap.ToString());
-        rc.width = 100;
-        rc.height = 40;
-        rc.x -= 90;
+        rc = new Rect(rc.x + 80, rc.y - 15, 100, 40);
+        GUI.Label(rc, "Number to win");
+        rc = new Rect(rc.x - 9, rc.y + 20, 100, 40);
+        QuantityToWin = (int)GUI.HorizontalSlider(rc, QuantityToWin, 3, SizeMap);
+        rc = new Rect(rc.x + 105, rc.y - 5, 20, 20);
+        GUI.TextField(rc, QuantityToWin.ToString());
+        rc = new Rect(Screen.width / 2 - 50, rc.y, 100, 40);
         bool flag;
         DrawButtons(rc, "Start Game", out flag);
         if (flag && choicePlayer != 0) 
