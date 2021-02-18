@@ -4,17 +4,18 @@ using UnityEngine;
 
 public class ImgChange : MonoBehaviour
 {
-    public int ImageStatus { get; set; } = 0;
+    public MainGame.Figure ImageStatus { get; set; } = MainGame.Figure.Blank;
 
-    public Sprite[] sprites = new Sprite[3];
+    public Sprite[] sprites = new Sprite[4];
     void ChangeImg()
     {
         SpriteRenderer sprite = this.GetComponent("SpriteRenderer") as SpriteRenderer;
         switch (ImageStatus)
         {
-            case 0: sprite.sprite = sprites[0]; break;
-            case 1: sprite.sprite = sprites[1]; break;
-            case 2: sprite.sprite = sprites[2]; break;
+            case MainGame.Figure.Blank: sprite.sprite = sprites[0]; break;
+            case MainGame.Figure.Cross: sprite.sprite = sprites[1]; break;
+            case MainGame.Figure.Zero: sprite.sprite = sprites[2]; break;
+            case MainGame.Figure.Frame: sprite.sprite = sprites[3]; break;
         }
     }
 
@@ -22,11 +23,12 @@ public class ImgChange : MonoBehaviour
     {
         GameObject game = GameObject.FindGameObjectWithTag("Player");
         MainGame main = game.GetComponent<MainGame>();
-        if (main.GameMode == MainGame.GameModes.ChoicePlayer)
+        if (main.GameMode == MainGame.GameModes.ChoicePlayer && ImageStatus!=MainGame.Figure.Frame)
         {
             main.choicePlayer = ImageStatus;
-            if (ImageStatus == 1) main.CPU = 2;//0
-            if (ImageStatus == 2) main.CPU = 1;//X
+            if (ImageStatus == MainGame.Figure.Cross) main.CPU = MainGame.Figure.Zero;//0
+            if (ImageStatus == MainGame.Figure.Zero) main.CPU = MainGame.Figure.Cross;//X
+            main.Highlighting();
         }
         if(main.GameMode == MainGame.GameModes.GameVSCPU)
         {
