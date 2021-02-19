@@ -3,23 +3,23 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+public enum GameModes { StartGame = 0, ChoicePlayer = 1, GameVSCPU = 2, EndGame = 3 }
+public enum Figure { Blank = 0, Cross = 1, Zero = 2, Frame = 3, Cube = 4 }
+
 public class MainGame : MonoBehaviour
 {
     //Multuplayer mod on or off
     public bool MultuPlayer = false;
+    public int countPlayers = 2;
     private int QuantityToWin { get; set; } = 3;
     private int SizeMap { get; set; } = 3;
-    //all winner combination with this size map
-    private int[,] winCombination;
-    public enum GameModes { StartGame = 0, ChoicePlayer = 1, GameVSCPU = 2, EndGame = 3}
     Figure WhoWin = Figure.Blank;
-    public enum Figure { Blank = 0, Cross = 1, Zero = 2, Frame = 3, Cube = 4}
     //save player choice
-    public Figure choicePlayer = Figure.Blank, CPU = Figure.Blank;
-    // player can step or not
-    public bool canStep = true;
+    public Player[] players = null;
     // need Draw or not
     bool DrawSelect = true;
+    //all winner combination with this size map
+    EtalonMassive victory;
     // link into prefab BlankImage
     public GameObject Img;
     //Game map
@@ -29,8 +29,7 @@ public class MainGame : MonoBehaviour
     //Drawed Start Menu
     private void mainMenu()
     {
-        //reset player selection from previous game
-        choicePlayer = 0; CPU = 0;
+        players = null;
         Rect rect = DrawLabelToDisplay("Menu game", 100, 40, new GUIStyle());
         //m = (int)GUILayout.HorizontalSlider(m, 3, 10);
         //shitft the center to the width of the button frame
@@ -99,12 +98,17 @@ public class MainGame : MonoBehaviour
 
     private void ChoicePlayer()
     {
-        if (DrawSelect && MultuPlayer==false)
-            DrawChoiseToDisplay();
-        else if (MultuPlayer)
+        if (DrawSelect)
         {
-            choicePlayer = Figure.Cross;
-            CPU = Figure.Zero;
+            if(MultuPlayer == false)
+                DrawChoiseToDisplay();
+            players = new Player[2];
+            DrawSelect = false;
+        }
+        if (MultuPlayer)
+        {
+            players[0] =  new Player { PlayerFigure = Figure.Cross };
+            players[1] = new Player { PlayerFigure = Figure.Zero }; 
         }
         ChoiceOfMapSize();
         if (GameMode == GameModes.GameVSCPU)
@@ -112,8 +116,14 @@ public class MainGame : MonoBehaviour
             DestroyGameObject();
             DrawSelect = true;
         }
-        if (choicePlayer == Figure.Zero)
-            canStep = false;
+    }
+    private void Priority()
+    {
+        foreach (var p in players)
+            if (p.PlayerFigure == Figure.Cross) {
+                p.CanStep = true;
+                ChangeBackground(Figure.Cross);
+            }
     }
     //game logic
     private void GameVsCPU()
@@ -122,20 +132,32 @@ public class MainGame : MonoBehaviour
         {
             DrawBlanksToDisplay(new Vector3(-4.2f + 1f * 3f / SizeMap,
                                 -4.3f + 1f * 3f / SizeMap, 0), SizeMap, SizeMap);
-            FillingWinCombination();
-            ChangeBackground(canStep);
+            victory.FillingWinCombination();
+            Priority();
         }
         //if game map is end, next stage
         if (!GameContinue())
             GameMode = GameModes.EndGame;
         // check if there is a winner
-        if (TestWin(choicePlayer)) { WhoWin = choicePlayer; GameMode = GameModes.EndGame; }
-        else if (TestWin(CPU)) { WhoWin = CPU; GameMode = GameModes.EndGame; }
-        if (!canStep && GameMode != GameModes.EndGame)
+        foreach (var p in players) 
         {
-            if(MultuPlayer==false)
-                CPUStep();
+            if (p.TestWin(selectMap, victory.WinCombinatio, SizeMap, QuantityToWin))
+            {
+                WhoWin = p.PlayerFigure;
+                GameMode = GameModes.EndGame;
+                break;
+            }
         }
+        if(GameMode!=GameModes.EndGame)
+            for (int i = 0; i < players.Length; i++)
+            {
+                if (players[i].CanStep && (players[i] as ComputerPlayer) != null)
+                {
+                    ((ComputerPlayer)players[i]).Step(SizeMap, selectMap);
+                    if (!players[i].CanStep)
+                        players[(i + 1) % countPlayers].CanStep = true;
+                }
+            }
     }
     //add border on Player Choice
     public void Highlighting()
@@ -147,16 +169,16 @@ public class MainGame : MonoBehaviour
         Vector3 defaultScale = new Vector3(1f, 1f, 1);
         Vector3 playerPosition = new Vector3(0, 0, 0);
         Vector3 CPUPosition = new Vector3(0, 0, 0);
-        if (choicePlayer == Figure.Cross)
+        if (players[0].PlayerFigure == Figure.Cross)
         {
             CPUPosition = new Vector3(6, 0, 0);
         }
-        if (choicePlayer == Figure.Zero)
+        if (players[0].PlayerFigure == Figure.Zero)
         {
             playerPosition = new Vector3(6, 0, 0);
         }
-        DrawOneImgScale(vector, playerPosition, scale, 0, choicePlayer);
-        DrawOneImgScale(vector, CPUPosition, defaultScale, 1, CPU);
+        DrawOneImgScale(vector, playerPosition, scale, 0, players[0].PlayerFigure);
+        DrawOneImgScale(vector, CPUPosition, defaultScale, 1, players[1].PlayerFigure);
         DrawOneImgScale(vector, playerPosition, defaultScale, 2, Figure.Frame);
         SpriteRenderer renderer = selectMap[0].GetComponent<SpriteRenderer>();
         renderer.sortingOrder = 1;
@@ -170,15 +192,18 @@ public class MainGame : MonoBehaviour
         gUI.fontSize = 50;
         gUI.alignment = TextAnchor.MiddleCenter;
         //Drawing winner on display
-        if (WhoWin == choicePlayer)
+        if (WhoWin == players[0].PlayerFigure)
             rect = DrawLabelToDisplay("Player wins! Congratulate!", 200, 100, gUI);
-        else if (WhoWin == CPU)
-            rect = DrawLabelToDisplay("Computer wins! Sorry!", 200, 100, gUI);
+        else if (WhoWin == players[1].PlayerFigure)
+        {
+            if(MultuPlayer==false)
+                rect = DrawLabelToDisplay("Computer wins! Sorry!", 200, 100, gUI);
+            else
+                rect = DrawLabelToDisplay("Second Player wins! Congratulate!", 200, 100, gUI);
+        }
         else
             rect = DrawLabelToDisplay("Dead heat!", 200, 100, gUI);
         bool clickButton;
-        //rect.width -= 50;
-        //rect.height -= 25;
         DrawButtons(rect, "Back to Main menu", out clickButton);
         //when the button is pressed, load the launch of the game
         if (clickButton)
@@ -197,17 +222,6 @@ public class MainGame : MonoBehaviour
             }
         }
         return false;
-    }
-    private void CPUStep()
-    {
-        //random computer step
-        int index = Random.Range(0, SizeMap * SizeMap);
-        ImgChange change = selectMap[index].GetComponent<ImgChange>();
-        if (change.ImageStatus == 0)
-        {
-            change.ImageStatus = CPU;
-            canStep = true;
-        }
     }
 
     // destroy all game object on display
@@ -244,7 +258,6 @@ public class MainGame : MonoBehaviour
         DrawOneImg(vector, new Vector3(0, 0, 0), 0, Figure.Cross);
         //draw a zero to Display
         DrawOneImg(vector,new Vector3(6,0,0), 1, Figure.Zero);
-        DrawSelect = false;
     }
 
     private void DrawOneImg(Vector3 vector, Vector3 changeVector, int i, Figure status = Figure.Blank)
@@ -270,80 +283,7 @@ public class MainGame : MonoBehaviour
         return rect;
     }
     //check who winner
-    private bool TestWin(Figure Who)
-    {
-        int[] testMap = new int[SizeMap*SizeMap];
-        if (selectMap != null)
-        {
-            //transfer all Who points to an array
-            for (int i = 0; i < selectMap.Length; i++)
-            {
-                GameObject s = selectMap[i];
-                ImgChange change = s.GetComponent<ImgChange>();
-                if (change.ImageStatus == Who)
-                {
-                    testMap[selectMap.Length-i-1] = 1;
-                }
-            }
-            //cell offset along the x and y axes, if QuantityToWin is different from SizeMap
-            for (int m = 0; m < SizeMap - QuantityToWin + 1; m++)
-            {
-                for (int k = 0; k < SizeMap - QuantityToWin + 1; k++)
-                {
-                    if (FindMatchesForWin(testMap, k, m))
-                        return true;
-                }
-            }
-        }
-        return false;
-    }
-    //search whether there was a victory on a certain area of ​​the map with an offset 
-    //of k along the x-axis and m along the y-axis
-    private bool FindMatchesForWin(int [] testMap, int k, int m)
-    {
-        for (int variableWin = 0; variableWin < winCombination.GetUpperBound(0) + 1; variableWin++)
-        {
-            byte[] rows = new byte[SizeMap];
-            byte indexRow = 0;
-            for (int i = 0; i < QuantityToWin; i++)
-            {
-                for (int j = 0; j < QuantityToWin; j++)
-                {
-                    if (winCombination[variableWin, i * QuantityToWin + j] == 1)
-                    {
-                        if (testMap[k + m * SizeMap + i * SizeMap + j] == 1)
-                            rows[indexRow]++;
-                        else
-                            indexRow++;
-                    }
-                }
-            }
-            foreach (var r in rows)
-                if (r >= QuantityToWin)
-                    return true;
-        }
-        return false;
-    }
-    private void FillingWinCombination()
-    {
-        winCombination = new int[QuantityToWin * 2 + 2, QuantityToWin * QuantityToWin];
-        int rows = winCombination.GetUpperBound(0) + 1;
-        //Заполнение построчно
-        for (int i = 0; i < QuantityToWin; i++)
-            for (int j = 0; j < QuantityToWin; j++)
-                winCombination[i, j + i * QuantityToWin] = 1;
-        //Заполнение сталбцов
-        for (int i = QuantityToWin; i < QuantityToWin * 2; i++)
-            for (int j = 0; j < QuantityToWin; j++)
-                winCombination[i, j * QuantityToWin + i - QuantityToWin] = 1;
-        for (int j = 0; j < QuantityToWin; j++)
-        {
-            //главная диагональ
-            winCombination[QuantityToWin * 2, j + j * QuantityToWin] = 1;
-            //побочная диагональ
-            winCombination[QuantityToWin * 2 + 1, QuantityToWin * QuantityToWin - QuantityToWin - j * (QuantityToWin - 1)] = 1;
-        }
-    }
+    
     private void ChoiceOfMapSize()
     {
         var rc = new Rect(Screen.width / 3 + 10, Screen.height / 2, 100, 20);
@@ -361,15 +301,23 @@ public class MainGame : MonoBehaviour
         rc = new Rect(Screen.width / 2 - 50, rc.y, 100, 40);
         bool flag;
         DrawButtons(rc, "Start Game", out flag);
-        if (flag && choicePlayer != 0) 
+        if (flag && players[0] != null) 
+        {
             GameMode = GameModes.GameVSCPU;
+            victory = new EtalonMassive(QuantityToWin);
+        }
     }
-    public void ChangeBackground(bool Player)
+    public void ChangeBackground(Figure playerBackGround)
     {
         Camera camera = gameObject.GetComponent<Camera>();
-        if (Player)
-            camera.backgroundColor = new Color32(115,20,1,255); 
-        else
-            camera.backgroundColor = new Color32(4, 61, 17, 255);
+        switch (playerBackGround)
+        {
+            case Figure.Cross:
+                camera.backgroundColor = new Color32(115, 20, 1, 255);
+                break;
+            case Figure.Zero:
+                camera.backgroundColor = new Color32(4, 61, 17, 255);
+                break;
+        }
     }
 }

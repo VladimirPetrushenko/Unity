@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class ImgChange : MonoBehaviour
 {
-    public MainGame.Figure ImageStatus { get; set; } = MainGame.Figure.Blank;
+    public Figure ImageStatus { get; set; } = Figure.Blank;
 
     public Sprite[] sprites = new Sprite[4];
     void ChangeImg()
@@ -12,11 +12,11 @@ public class ImgChange : MonoBehaviour
         SpriteRenderer sprite = this.GetComponent("SpriteRenderer") as SpriteRenderer;
         switch (ImageStatus)
         {
-            case MainGame.Figure.Blank: sprite.sprite = sprites[0]; break;
-            case MainGame.Figure.Cross: sprite.sprite = sprites[1]; break;
-            case MainGame.Figure.Zero: sprite.sprite = sprites[2]; break;
-            case MainGame.Figure.Frame: sprite.sprite = sprites[3]; break;
-            case MainGame.Figure.Cube: sprite.sprite = sprites[4]; break;
+            case Figure.Blank: sprite.sprite = sprites[0]; break;
+            case Figure.Cross: sprite.sprite = sprites[1]; break;
+            case Figure.Zero: sprite.sprite = sprites[2]; break;
+            case Figure.Frame: sprite.sprite = sprites[3]; break;
+            case Figure.Cube: sprite.sprite = sprites[4]; break;
         }
     }
 
@@ -24,30 +24,48 @@ public class ImgChange : MonoBehaviour
     {
         GameObject game = GameObject.FindGameObjectWithTag("Player");
         MainGame main = game.GetComponent<MainGame>();
-        if (main.GameMode == MainGame.GameModes.ChoicePlayer && ImageStatus!=MainGame.Figure.Frame)
+        if (main.GameMode == GameModes.ChoicePlayer && ImageStatus != Figure.Frame) 
         {
-            main.choicePlayer = ImageStatus;
-            if (ImageStatus == MainGame.Figure.Cross) main.CPU = MainGame.Figure.Zero;//0
-            if (ImageStatus == MainGame.Figure.Zero) main.CPU = MainGame.Figure.Cross;//X
+            main.players[0] = new Player { PlayerFigure = ImageStatus };
+            if (ImageStatus == Figure.Cross)
+            {
+                main.players[1] = new ComputerPlayer { PlayerFigure = Figure.Zero };
+            }
+            if (ImageStatus == Figure.Zero)
+            {
+                main.players[1] = new ComputerPlayer { PlayerFigure = Figure.Cross };
+            }
             main.Highlighting();
         }
-        if(main.GameMode == MainGame.GameModes.GameVSCPU)
+        if(main.GameMode == GameModes.GameVSCPU)
         {
-            //the player's turn and the field is empty
-            if (main.canStep && ImageStatus == 0) 
+            for (int i = 0; i < main.players.Length; i++)
             {
-                ImageStatus = main.choicePlayer;
-                main.canStep = false;
-                if(main.MultuPlayer)
-                    main.ChangeBackground(false);
+                if (main.players[i].CanStep && ImageStatus == 0)
+                {
+                    ImageStatus = main.players[i].PlayerFigure;
+                    main.players[i].CanStep = false;
+                    main.players[(i+1) % main.countPlayers].CanStep = true;
+                    if (main.MultuPlayer)
+                        main.ChangeBackground(main.players[(i + 1) % main.countPlayers].PlayerFigure);
+                    break;
+                }
             }
-            if (!main.canStep && ImageStatus == 0)
-            {
-                ImageStatus = main.CPU;
-                main.canStep = true;
-                if (main.MultuPlayer)
-                    main.ChangeBackground(true);
-            }
+            ////the player's turn and the field is empty
+            //if (main.canStep && ImageStatus == 0)
+            //{
+            //    ImageStatus = main.players[0].PlayerFigure;
+            //    main.canStep = false;
+            //    if (main.MultuPlayer)
+            //        main.ChangeBackground(false);
+            //}
+            //else if (!main.canStep && ImageStatus == 0)
+            //{
+            //    ImageStatus = main.players[1].PlayerFigure;
+            //    main.canStep = true;
+            //    if (main.MultuPlayer)
+            //        main.ChangeBackground(true);
+            //}
         }
     }
 
