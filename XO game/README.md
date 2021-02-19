@@ -5,3 +5,4 @@
 Добавлена возможность выбирать количество объектов в ряд для выигрыша
 Fix bug(The computer took one step after finishing the game) and add функция кто ходит первым. Крестики - первые, нолики отвечают. Т.е. возможность первым ходить ПК
 Добавлен мультиплеер и интуитивно понятный интерфейс для определения чей ход
+fix big(did not determine the winner if the size of the field was different from the size for winning in row) and change interface

@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 
 public class MainGame : MonoBehaviour
 {
+    //Multuplayer mod on or off
     public bool MultuPlayer = false;
     private int QuantityToWin { get; set; } = 3;
     private int SizeMap { get; set; } = 3;
@@ -98,8 +99,13 @@ public class MainGame : MonoBehaviour
 
     private void ChoicePlayer()
     {
-        if (DrawSelect)
+        if (DrawSelect && MultuPlayer==false)
             DrawChoiseToDisplay();
+        else if (MultuPlayer)
+        {
+            choicePlayer = Figure.Cross;
+            CPU = Figure.Zero;
+        }
         ChoiceOfMapSize();
         if (GameMode == GameModes.GameVSCPU)
         {
@@ -109,7 +115,7 @@ public class MainGame : MonoBehaviour
         if (choicePlayer == Figure.Zero)
             canStep = false;
     }
-
+    //game logic
     private void GameVsCPU()
     {
         if (DrawSelect)
@@ -117,10 +123,7 @@ public class MainGame : MonoBehaviour
             DrawBlanksToDisplay(new Vector3(-4.2f + 1f * 3f / SizeMap,
                                 -4.3f + 1f * 3f / SizeMap, 0), SizeMap, SizeMap);
             FillingWinCombination();
-            if(choicePlayer==Figure.Cross)
-                ChangeBackground(true);
-            if (choicePlayer == Figure.Zero)
-                ChangeBackground(false);
+            ChangeBackground(canStep);
         }
         //if game map is end, next stage
         if (!GameContinue())
@@ -134,7 +137,7 @@ public class MainGame : MonoBehaviour
                 CPUStep();
         }
     }
-
+    //add border on Player Choice
     public void Highlighting()
     {
         DestroyGameObject();
@@ -282,46 +285,63 @@ public class MainGame : MonoBehaviour
                     testMap[selectMap.Length-i-1] = 1;
                 }
             }
-            //check if matches with the winning combination
-            for (int variableWin = 0; variableWin < winCombination.GetUpperBound(0) + 1; variableWin++)
+            //cell offset along the x and y axes, if QuantityToWin is different from SizeMap
+            for (int m = 0; m < SizeMap - QuantityToWin + 1; m++)
             {
-                byte[] rows = new byte[SizeMap];
-                byte indexRow = 0;
-                for (int i = 0; i < testMap.Length; i++)
+                for (int k = 0; k < SizeMap - QuantityToWin + 1; k++)
                 {
-                    if (winCombination[variableWin, i] == 1)
+                    if (FindMatchesForWin(testMap, k, m))
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+    //search whether there was a victory on a certain area of ​​the map with an offset 
+    //of k along the x-axis and m along the y-axis
+    private bool FindMatchesForWin(int [] testMap, int k, int m)
+    {
+        for (int variableWin = 0; variableWin < winCombination.GetUpperBound(0) + 1; variableWin++)
+        {
+            byte[] rows = new byte[SizeMap];
+            byte indexRow = 0;
+            for (int i = 0; i < QuantityToWin; i++)
+            {
+                for (int j = 0; j < QuantityToWin; j++)
+                {
+                    if (winCombination[variableWin, i * QuantityToWin + j] == 1)
                     {
-                        if (testMap[i] == 1)
+                        if (testMap[k + m * SizeMap + i * SizeMap + j] == 1)
                             rows[indexRow]++;
                         else
                             indexRow++;
                     }
                 }
-                foreach (var r in rows)
-                    if (r >= QuantityToWin)
-                        return true;
             }
+            foreach (var r in rows)
+                if (r >= QuantityToWin)
+                    return true;
         }
         return false;
     }
     private void FillingWinCombination()
     {
-        winCombination = new int[SizeMap * 2 + 2, SizeMap * SizeMap];
+        winCombination = new int[QuantityToWin * 2 + 2, QuantityToWin * QuantityToWin];
         int rows = winCombination.GetUpperBound(0) + 1;
         //Заполнение построчно
-        for (int i = 0; i < SizeMap; i++)
-            for (int j = 0; j < SizeMap; j++)
-                winCombination[i, j + i * SizeMap] = 1;
+        for (int i = 0; i < QuantityToWin; i++)
+            for (int j = 0; j < QuantityToWin; j++)
+                winCombination[i, j + i * QuantityToWin] = 1;
         //Заполнение сталбцов
-        for (int i = SizeMap; i < SizeMap * 2; i++)
-            for (int j = 0; j < SizeMap; j++)
-                winCombination[i, j * SizeMap + i - SizeMap] = 1;
-        for (int j = 0; j < SizeMap; j++)
+        for (int i = QuantityToWin; i < QuantityToWin * 2; i++)
+            for (int j = 0; j < QuantityToWin; j++)
+                winCombination[i, j * QuantityToWin + i - QuantityToWin] = 1;
+        for (int j = 0; j < QuantityToWin; j++)
         {
             //главная диагональ
-            winCombination[SizeMap * 2, j + j * SizeMap] = 1;
+            winCombination[QuantityToWin * 2, j + j * QuantityToWin] = 1;
             //побочная диагональ
-            winCombination[SizeMap * 2 + 1, SizeMap * SizeMap - SizeMap - j * (SizeMap - 1)] = 1;
+            winCombination[QuantityToWin * 2 + 1, QuantityToWin * QuantityToWin - QuantityToWin - j * (QuantityToWin - 1)] = 1;
         }
     }
     private void ChoiceOfMapSize()
