@@ -11,34 +11,28 @@ public class Player
     public bool CanStep { get; set; } = false;
     public bool TestWin(GameObject[] selectMap, int[,] winCombination, int SizeMap, int QuantityToWin)
     {
-        int[] testMap = new int[SizeMap * SizeMap];
-        if (selectMap != null)
+        if (selectMap == null)
+            return false;
+        //transfer all PlayerFigure points to an int array
+        int[] testMap = CreateIntMapArray(selectMap);
+        return ProcedureTestWin(testMap, winCombination, SizeMap, QuantityToWin, PlayerFigure);
+    }
+    public bool ProcedureTestWin(int[] selectMap, int[,] winCombination, int SizeMap, int QuantityToWin, Figure player )
+    {
+        //cell offset along the x and y axes, if QuantityToWin is different from SizeMap
+        for (int x = 0; x < SizeMap - QuantityToWin + 1; x++)
         {
-            //transfer all PlayerFigure points to an array
-            for (int i = 0; i < selectMap.Length; i++)
+            for (int y = 0; y < SizeMap - QuantityToWin + 1; y++)
             {
-                GameObject s = selectMap[i];
-                ImgChange change = s.GetComponent<ImgChange>();
-                if (change.ImageStatus == PlayerFigure)
-                {
-                    testMap[selectMap.Length - i - 1] = 1;
-                }
-            }
-            //cell offset along the x and y axes, if QuantityToWin is different from SizeMap
-            for (int m = 0; m < SizeMap - QuantityToWin + 1; m++)
-            {
-                for (int k = 0; k < SizeMap - QuantityToWin + 1; k++)
-                {
-                    if (FindMatchesForWin(testMap, winCombination, SizeMap, QuantityToWin, k, m))
-                        return true;
-                }
+                if (FindMatchesForWin(selectMap, winCombination, SizeMap, QuantityToWin, y, x, player))
+                    return true;
             }
         }
         return false;
     }
     //search whether there was a victory on a certain area of ​​the map with an offset 
     //of k along the x-axis and m along the y-axis
-    protected bool FindMatchesForWin(int[] testMap, int[,] winCombination, int SizeMap, int QuantityToWin, int k, int m)
+    protected bool FindMatchesForWin(int[] testMap, int[,] winCombination, int SizeMap, int QuantityToWin, int k, int m, Figure player)
     {
         for (int variableWin = 0; variableWin < winCombination.GetUpperBound(0) + 1; variableWin++)
         {
@@ -50,7 +44,7 @@ public class Player
                 {
                     if (winCombination[variableWin, i * QuantityToWin + j] == 1)
                     {
-                        if (testMap[k + m * SizeMap + i * SizeMap + j] == 1)
+                        if (testMap[k + m * SizeMap + i * SizeMap + j] == (int)player)
                             rows[indexRow]++;
                         else
                             indexRow++;
@@ -62,5 +56,15 @@ public class Player
                     return true;
         }
         return false;
+    }
+    protected static int[] CreateIntMapArray(GameObject[] selectMap)
+    {
+        int[] originArray = new int[selectMap.Length];
+        for (int i = 0; i < selectMap.Length; i++)
+        {
+            ImgChange select = selectMap[i].GetComponent<ImgChange>();
+            originArray[i] = (int)select.ImageStatus;
+        }
+        return originArray;
     }
 }

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public enum GameModes { StartGame = 0, ChoicePlayer = 1, GameVSCPU = 2, EndGame = 3 }
-public enum Figure { Blank = 0, Cross = 1, Zero = 2, Frame = 3, Cube = 4 }
+public enum GameModes { StartGame = 0, ChoicePlayer = 1, GameVSCPU = 2, EndGame = 3, CountPlayers = 4 }
+public enum Figure { Blank = 0, Cross = 1, Zero = 2, Frame = 4, Triangle = 3 }
 
 public class MainGame : MonoBehaviour
 {
@@ -13,6 +13,7 @@ public class MainGame : MonoBehaviour
     public int countPlayers = 2;
     private int QuantityToWin { get; set; } = 3;
     private int SizeMap { get; set; } = 3;
+    private int StartPosition = 3;
     Figure WhoWin = Figure.Blank;
     //save player choice
     public Player[] players = null;
@@ -46,7 +47,7 @@ public class MainGame : MonoBehaviour
         //if button1 was pressed change gameMode
         if (gameChange)
         {
-            GameMode = GameModes.ChoicePlayer;
+            GameMode = GameModes.CountPlayers;
             MultuPlayer = true;
         }
 
@@ -83,6 +84,9 @@ public class MainGame : MonoBehaviour
             case GameModes.StartGame:
                 mainMenu();
                 break;
+            case GameModes.CountPlayers:
+                CountPlayers();
+                break;
             case GameModes.ChoicePlayer:
                 ChoicePlayer();
                 break;
@@ -95,20 +99,54 @@ public class MainGame : MonoBehaviour
                 break;
         }
     }
+    private void CountPlayers()
+    {
+        Rect rect = DrawLabelToDisplay("", 100, 40, new GUIStyle());
+        //m = (int)GUILayout.HorizontalSlider(m, 3, 10);
+        //shitft the center to the width of the button frame
+        rect.x = rect.x - 15;
 
+        bool gameChange;
+
+        rect = DrawButtons(rect, "Two players", out gameChange);
+        //if button1 was pressed change gameMode
+        if (gameChange)
+        {
+            GameMode = GameModes.ChoicePlayer;
+            players = new Player[2];
+            countPlayers = 2;
+            SizeMap = 3;
+            StartPosition = 3;
+        }
+
+        rect = DrawButtons(rect, "Three Players", out gameChange);
+        //if button1 was pressed change gameMode
+        if (gameChange)
+        {
+            GameMode = GameModes.ChoicePlayer;
+            players = new Player[3];
+            SizeMap = 5;
+            StartPosition = 5;
+            countPlayers = 3;
+        }
+    }
     private void ChoicePlayer()
     {
         if (DrawSelect)
         {
-            if(MultuPlayer == false)
+            if (MultuPlayer == false)
+            {
                 DrawChoiseToDisplay();
-            players = new Player[2];
+                players = new Player[2];
+            }
             DrawSelect = false;
         }
         if (MultuPlayer)
         {
-            players[0] =  new Player { PlayerFigure = Figure.Cross };
-            players[1] = new Player { PlayerFigure = Figure.Zero }; 
+            for(int i = 0; i < players.Length; i++)
+            {
+                players[i] = new Player { PlayerFigure = (Figure)(i + 1) };
+            }
         }
         ChoiceOfMapSize();
         if (GameMode == GameModes.GameVSCPU)
@@ -148,12 +186,12 @@ public class MainGame : MonoBehaviour
                 break;
             }
         }
-        if(GameMode!=GameModes.EndGame)
+        if(GameMode!=GameModes.EndGame && !MultuPlayer)
             for (int i = 0; i < players.Length; i++)
             {
                 if (players[i].CanStep && (players[i] as ComputerPlayer) != null)
                 {
-                    ((ComputerPlayer)players[i]).Step(SizeMap, selectMap);
+                    ((ComputerPlayer)players[i]).Step(SizeMap, selectMap, victory.WinCombinatio);
                     if (!players[i].CanStep)
                         players[(i + 1) % countPlayers].CanStep = true;
                 }
@@ -187,21 +225,20 @@ public class MainGame : MonoBehaviour
     {
         //Destroy all game object
         //DestroyGameObject();
-        Rect rect;
+        Rect rect = new Rect();
         GUIStyle gUI = new GUIStyle();
         gUI.fontSize = 50;
         gUI.alignment = TextAnchor.MiddleCenter;
+        bool label = true;
         //Drawing winner on display
-        if (WhoWin == players[0].PlayerFigure)
-            rect = DrawLabelToDisplay("Player wins! Congratulate!", 200, 100, gUI);
-        else if (WhoWin == players[1].PlayerFigure)
-        {
-            if(MultuPlayer==false)
-                rect = DrawLabelToDisplay("Computer wins! Sorry!", 200, 100, gUI);
-            else
-                rect = DrawLabelToDisplay("Second Player wins! Congratulate!", 200, 100, gUI);
+        foreach (var p in players) {
+            if (WhoWin == p.PlayerFigure)
+            {
+                rect = DrawLabelToDisplay(p.PlayerFigure + " wins!", 200, 100, gUI);
+                label = false;
+            }
         }
-        else
+        if(label)
             rect = DrawLabelToDisplay("Dead heat!", 200, 100, gUI);
         bool clickButton;
         DrawButtons(rect, "Back to Main menu", out clickButton);
@@ -289,7 +326,7 @@ public class MainGame : MonoBehaviour
         var rc = new Rect(Screen.width / 3 + 10, Screen.height / 2, 100, 20);
         GUI.Label(rc, "Size map");
         rc = new Rect(rc.x - 25, rc.y + 20, 100, 20);
-        SizeMap = (int)GUI.HorizontalSlider(rc, SizeMap, 3, 10);
+        SizeMap = (int)GUI.HorizontalSlider(rc, SizeMap, StartPosition, 10);
         rc = new Rect(rc.x + 105, rc.y - 5, 40, 20);
         GUI.TextField(rc, SizeMap.ToString() + "x" + SizeMap.ToString());
         rc = new Rect(rc.x + 80, rc.y - 15, 100, 40);
@@ -317,6 +354,9 @@ public class MainGame : MonoBehaviour
                 break;
             case Figure.Zero:
                 camera.backgroundColor = new Color32(4, 61, 17, 255);
+                break;
+            case Figure.Triangle:
+                camera.backgroundColor = new Color32(10, 33, 67, 255);
                 break;
         }
     }

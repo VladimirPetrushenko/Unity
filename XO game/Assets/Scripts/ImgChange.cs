@@ -16,7 +16,7 @@ public class ImgChange : MonoBehaviour
             case Figure.Cross: sprite.sprite = sprites[1]; break;
             case Figure.Zero: sprite.sprite = sprites[2]; break;
             case Figure.Frame: sprite.sprite = sprites[3]; break;
-            case Figure.Cube: sprite.sprite = sprites[4]; break;
+            case Figure.Triangle: sprite.sprite = sprites[4]; break;
         }
     }
 
@@ -51,21 +51,6 @@ public class ImgChange : MonoBehaviour
                     break;
                 }
             }
-            ////the player's turn and the field is empty
-            //if (main.canStep && ImageStatus == 0)
-            //{
-            //    ImageStatus = main.players[0].PlayerFigure;
-            //    main.canStep = false;
-            //    if (main.MultuPlayer)
-            //        main.ChangeBackground(false);
-            //}
-            //else if (!main.canStep && ImageStatus == 0)
-            //{
-            //    ImageStatus = main.players[1].PlayerFigure;
-            //    main.canStep = true;
-            //    if (main.MultuPlayer)
-            //        main.ChangeBackground(true);
-            //}
         }
     }
 
